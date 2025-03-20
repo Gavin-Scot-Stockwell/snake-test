@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            border: 1px solid black;
+            background-color: #fff;
+        }
+        #scoreBoard, #highScores {
+            margin-top: 10px;
+            font-size: 1.2em;
+        }
+        #highScores {
+            margin-bottom: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: white;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <div id="scoreBoard">Score: 0</div>
+    <div id="highScores">High Scores:</div>
+    <button id="pauseButton">Pause</button>
+    <button id="restartButton" style="display:none;">Play Again</button>
+    <script>
+// filepath: /C:/Users/mrsru/Desktop/lol.js
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreBoard = document.getElementById('scoreBoard');
+const highScoresDiv = document.getElementById('highScores');
+const pauseButton = document.getElementById('pauseButton');
+const restartButton = document.getElementById('restartButton');
+
+const gridSize = 20;
+let snake = [{ x: gridSize * 5, y: gridSize * 5 }];
+let direction = { x: 0, y: 0 };
+let food = { x: gridSize * 10, y: gridSize * 10 };
+let score = 0;
+let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+let gameInterval;
+let isPaused = false;
+
+function draw() {
+    if (isPaused) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw snake
+    ctx.fillStyle = 'green';
+    snake.forEach(segment => ctx.fillRect(segment.x, segment.y, gridSize, gridSize));
+
+    // Draw food
+    ctx.fillStyle = 'red';
+    ctx.fillRect(food.x, food.y, gridSize, gridSize);
+
+    // Move snake
+    const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+    snake.unshift(head);
+
+    // Check if snake eats food
+    if (head.x === food.x && head.y === food.y) {
+        score++;
+        scoreBoard.textContent = `Score: ${score}`;
+        food = {
+            x: Math.floor(Math.random() * canvas.width / gridSize) * gridSize,
+            y: Math.floor(Math.random() * canvas.height / gridSize) * gridSize
+        };
+    } else {
+        snake.pop();
+    }
+
+    // Check for collision with walls or itself
+    if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || snake.slice(1).some(segment => segment.x === head.x && segment.y === head.y)) {
+        resetGame();
+    }
+}
+
+function resetGame() {
+    clearInterval(gameInterval);
+    if (score > (highScores[0]?.score || 0)) {
+        const name = prompt("New High Score! Enter your name:");
+        highScores.unshift({ name, score });
+        highScores = highScores.slice(0, 5); // Keep top 5 scores
+        localStorage.setItem('highScores', JSON.stringify(highScores));
+        updateHighScores();
+    }
+    snake = [{ x: gridSize * 5, y: gridSize * 5 }];
+    direction = { x: 0, y: 0 };
+    food = { x: gridSize * 10, y: gridSize * 10 };
+    score = 0;
+    scoreBoard.textContent = `Score: ${score}`;
+    restartButton.style.display = 'block';
+}
+
+function changeDirection(event) {
+    const keyPressed = event.keyCode;
+    const goingUp = direction.y === -gridSize;
+    const goingDown = direction.y === gridSize;
+    const goingRight = direction.x === gridSize;
+    const goingLeft = direction.x === -gridSize;
+
+    if (keyPressed === 37 && !goingRight) {
+        direction = { x: -gridSize, y: 0 };
+    }
+    if (keyPressed === 38 && !goingDown) {
+        direction = { x: 0, y: -gridSize };
+    }
+    if (keyPressed === 39 && !goingLeft) {
+        direction = { x: gridSize, y: 0 };
+    }
+    if (keyPressed === 40 && !goingUp) {
+        direction = { x: 0, y: gridSize };
+    }
+    if (keyPressed === 27) { // Escape key for pause
+        togglePause();
+    }
+    if (keyPressed === 82) { // 'R' key for restart
+        resetGame();
+        startGame();
+    }
+}
+
+function togglePause() {
+    isPaused = !isPaused;
+    pauseButton.textContent = isPaused ? 'Resume' : 'Pause';
+}
+
+function updateHighScores() {
+    highScoresDiv.innerHTML = 'High Scores:<br>' + highScores.map(score => `${score.name}: ${score.score}`).join('<br>');
+}
+
+function startGame() {
+    restartButton.style.display = 'none';
+    gameInterval = setInterval(draw, 100);
+}
+
+document.addEventListener('keydown', changeDirection);
+pauseButton.addEventListener('click', togglePause);
+restartButton.addEventListener('click', startGame);
+
+updateHighScores();
+startGame();
+    </script>
+</body>
+</html>
